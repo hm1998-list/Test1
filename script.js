@@ -719,6 +719,7 @@ window.onload = async function() {
     const loader = document.getElementById('loading-screen');
     const cachedData = localStorage.getItem(CACHE_KEY);
 
+    // ロード画面を消す関数
     const hideLoader = () => {
         if (loader) {
             loader.style.opacity = '0';
@@ -726,35 +727,44 @@ window.onload = async function() {
         }
     };
 
+    // --- 【修正ポイント】キャッシュがあれば即座に変数に入れる ---
+    if (cachedData) {
+        console.log("キャッシュから即座に復元します");
+        allData = JSON.parse(cachedData);
+        buildMenu();
+        buildHome();
+        // キャッシュがあれば先に幕を引いてOK（爆速体験）
+        hideLoader();
+    }
+
+    // 裏で最新データを取得しにいく（キャッシュがあっても、最新に更新するため）
     try {
-        console.log("データの取得を開始します...");
+        console.log("最新データをGASからチェックします...");
         const response = await fetch(GAS_URL);
         const data = await response.json();
         
         let rawData = data.slice(1).reverse();
-        // ★ここでグローバルな allData に代入
-        allData = rawData.filter(item => {
+        const freshData = rawData.filter(item => {
             const id = item.ItemID || item['アイテムID'];
             const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
             return id && id.toString().trim() !== "" && isUploaded;
         });
 
-        console.log("データ受信完了！件数:", allData.length);
+        // 取得したデータで上書きし、キャッシュを更新
+        allData = freshData;
         localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
         
+        // メニューなどを最新状態で再構築（裏でこっそり更新）
         buildMenu();
         buildHome();
         
-        // ハッシュがなければHomeを表示
-        if (!window.location.hash || window.location.hash === '#home') {
-            showHome();
-        }
     } catch (e) {
-        console.error("データ取得エラー:", e);
+        console.error("最新データの取得に失敗しましたが、キャッシュがあれば続行可能です:", e);
     } finally {
-        hideLoader();
+        // キャッシュがなかった場合のみ、ここで幕を引く
+        if (!cachedData) hideLoader();
     }
-}; // ← ここで正しく閉じる
+};
 
 document.getElementById('message-form').addEventListener('submit', function(e) {
     e.preventDefault();
