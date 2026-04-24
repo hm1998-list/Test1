@@ -126,17 +126,26 @@ function loadMoreItems() {
 }
 
 async function openModalByIdx(originalIdx, retryCount = 0) {
-　　const data = window.allData;
-        
-　　if (!data || data.length === 0 || !data[originalIdx]) {
-        if (retryCount > 20) {
-            console.error("タイムアウト：データが空、または指定のインデックスが見つかりません。");
+    // データが空、または指定のインデックスが存在しない場合
+    if (!allData || allData.length === 0 || !allData[originalIdx]) {
+        if (retryCount > 20) { // 10秒待ってもダメなら
+            console.error("データの読み込みがタイムアウトしました。");
             return;
         }
         console.log(`データ受信待ち... (${retryCount + 1}回目)`);
         setTimeout(() => openModalByIdx(originalIdx, retryCount + 1), 500); 
         return;
     }
+
+    // お掃除処理
+    const thumbNavContainer = document.querySelector('.thumb-nav');
+    if (thumbNavContainer) thumbNavContainer.innerHTML = '';
+    
+    const dotsContainer = document.getElementById('modalDots');
+    if (dotsContainer) dotsContainer.innerHTML = '';
+
+    const mainImg = document.getElementById('mainModalImg');
+    if (mainImg) mainImg.src = '';
         
 　　if (document.querySelector('.thumb-nav')) {
         document.querySelector('.thumb-nav').innerHTML = '';
@@ -710,7 +719,6 @@ window.onload = async function() {
     const loader = document.getElementById('loading-screen');
     const cachedData = localStorage.getItem(CACHE_KEY);
 
-    // ロード画面を消す関数（共通化）
     const hideLoader = () => {
         if (loader) {
             loader.style.opacity = '0';
@@ -718,52 +726,36 @@ window.onload = async function() {
         }
     };
 
-    const safelyShowHome = () => {
-        const modal = document.getElementById('itemModal');
-        const isModalOpen = modal && modal.classList.contains('visible');
-        const hasHash = window.location.hash.length > 1;
+    try {
+        console.log("データの取得を開始します...");
+        const response = await fetch(GAS_URL);
+        const data = await response.json();
         
-        if (allData && allData.length > 0 && !isModalOpen && !hasHash) {
-        showHome();
-        }
-    };
+        let rawData = data.slice(1).reverse();
+        // ★ここでグローバルな allData に代入
+        allData = rawData.filter(item => {
+            const id = item.ItemID || item['アイテムID'];
+            const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
+            return id && id.toString().trim() !== "" && isUploaded;
+        });
 
-    if (cachedData) {
-        // 【1】キャッシュがある場合：即座に表示して幕を引く
-        console.log("キャッシュから読み込みます");
-        allData = JSON.parse(cachedData);
+        console.log("データ受信完了！件数:", allData.length);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
+        
         buildMenu();
         buildHome();
-        safelyShowHome(); // 安全にHomeを表示
-        hideLoader();
-    } else {
-        // 【2】キャッシュがない場合：GASから取ってくる
-        try {
-            console.log("GASからデータを取得します");
-            const response = await fetch(GAS_URL);
-            const data = await response.json();
-            
-            let rawData = data.slice(1).reverse();
-            // IDチェックと画像UP済みチェックを同時に行う
-            allData = rawData.filter(item => {
-                const id = item.ItemID || item['アイテムID'];
-                const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
-                return id && id.toString().trim() !== "" && isUploaded;
-            });
-
-            localStorage.setItem(CACHE_KEY, JSON.stringify(allData));
-            
-            buildMenu();
-            buildHome();
-            safelyShowHome(); // データが届いた瞬間に操作を邪魔しないよう判定
-            
-        } catch (e) {
-            console.error("データ取得エラー:", e);
-        } finally {
-            hideLoader(); // 成功しても失敗しても幕は消す
+        
+        // ハッシュがなければHomeを表示
+        if (!window.location.hash || window.location.hash === '#home') {
+            showHome();
         }
+    } catch (e) {
+        console.error("データ取得エラー:", e);
+    } finally {
+        hideLoader();
     }
-};
+}; // ← ここで正しく閉じる
+
 document.getElementById('message-form').addEventListener('submit', function(e) {
     e.preventDefault();
     
