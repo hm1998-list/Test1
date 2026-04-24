@@ -126,7 +126,7 @@ function loadMoreItems() {
 }
 
 async function openModalByIdx(originalIdx, retryCount = 0) {
-        const data = window.allData;
+　　const data = window.allData;
         
 　　if (!data || data.length === 0 || !data[originalIdx]) {
         if (retryCount > 20) {
@@ -137,6 +137,7 @@ async function openModalByIdx(originalIdx, retryCount = 0) {
         setTimeout(() => openModalByIdx(originalIdx, retryCount + 1), 500); 
         return;
     }
+        
 　　if (document.querySelector('.thumb-nav')) {
         document.querySelector('.thumb-nav').innerHTML = '';
     }
@@ -537,15 +538,18 @@ window.addEventListener('keydown', (e) => {
 fetch('https://script.google.com/macros/s/AKfycbwQxlFPFKuE2zYda8BBdt0hPyfrqlUzI2xUrc1Ui_lbyHlrQtyWlL7oUfTtW8OPpcr61Q/exec')
     .then(res => res.json())
     .then(data => {
-        let rawData = data.slice(1).reverse(); 
-        allData = rawData.filter(item => {
-            const filteredData = rawData.filter(item => {
+        const filteredData = rawData.filter(item => {
             const id = item.ItemID || item['アイテムID'];
             const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
             return id && id.toString().trim() !== "" && isUploaded;
         });
-        window.allData = filteredData;
-        console.log("データ受信完了：", allData.length, "件"); // これがコンソールに出れば成功
+    
+    window.allData = filteredData;
+    console.log("データ受信完了！件数:", window.allData.length);
+    
+    if (window.allData.length === 0) {
+            console.warn("注意：条件に合うデータが0件です。スプレッドシートの『画像UP済み』列を確認してください。");
+        }
 
         buildMenu();
         buildHome();
