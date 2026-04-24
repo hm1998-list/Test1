@@ -126,10 +126,11 @@ function loadMoreItems() {
 }
 
 async function openModalByIdx(originalIdx, retryCount = 0) {
-　　if (!allData || allData.length === 0 || !allData[originalIdx]) {
-        // 10秒（20回）待ってもダメならエラーを出して終了
+        const data = window.allData;
+        
+　　if (!data || data.length === 0 || !data[originalIdx]) {
         if (retryCount > 20) {
-            console.error("データ取得タイムアウト");
+            console.error("タイムアウト：データが空、または指定のインデックスが見つかりません。");
             return;
         }
         console.log(`データ受信待ち... (${retryCount + 1}回目)`);
@@ -538,10 +539,12 @@ fetch('https://script.google.com/macros/s/AKfycbwQxlFPFKuE2zYda8BBdt0hPyfrqlUzI2
     .then(data => {
         let rawData = data.slice(1).reverse(); 
         allData = rawData.filter(item => {
+            const filteredData = rawData.filter(item => {
             const id = item.ItemID || item['アイテムID'];
             const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
             return id && id.toString().trim() !== "" && isUploaded;
         });
+        window.allData = filteredData;
         console.log("データ受信完了：", allData.length, "件"); // これがコンソールに出れば成功
 
         buildMenu();
