@@ -125,10 +125,16 @@ function loadMoreItems() {
     isLoading = false;
 }
 
-async function openModalByIdx(originalIdx) {
+async function openModalByIdx(originalIdx, retryCount = 0) {
 　　if (!allData || allData.length === 0 || !allData[originalIdx]) {
-        console.warn("データ準備中のため、モーダルを開けません。");
-        return; 
+        // 10秒（20回）待ってもダメならエラーを出して終了
+        if (retryCount > 20) {
+            console.error("データ取得タイムアウト");
+            return;
+        }
+        console.log(`データ受信待ち... (${retryCount + 1}回目)`);
+        setTimeout(() => openModalByIdx(originalIdx, retryCount + 1), 500); 
+        return;
     }
 　　if (document.querySelector('.thumb-nav')) {
         document.querySelector('.thumb-nav').innerHTML = '';
@@ -153,9 +159,10 @@ async function openModalByIdx(originalIdx) {
     document.getElementById('modalHowToGet').innerText = item['入手方法'] || "確認中";
     document.getElementById('modalComment').innerText = item['note'] || "備考はありません";
 
+// 【修正】onerror で外部サイトに繋がず、シンプルにする
     const photoArea = document.getElementById('modalPhoto');
-    photoArea.innerHTML = `<img src="images/${itemId}_front.webp" id="mainModalImg" onerror="this.src='https://placehold.jp/200x200?text=NoImage'">`;
-
+    photoArea.innerHTML = `<img src="images/${itemId}_front.webp" id="mainModalImg" onerror="this.style.display='none';">`;
+        
     // --- 左右切り替えボタンの表示制御 ---
     const idxInList = displayList.indexOf(item);
     document.querySelector('.nav-prev').style.display = (idxInList > 0) ? 'flex' : 'none';
@@ -531,8 +538,11 @@ fetch('https://script.google.com/macros/s/AKfycbwQxlFPFKuE2zYda8BBdt0hPyfrqlUzI2
     .then(data => {
         let rawData = data.slice(1).reverse(); 
         allData = rawData.filter(item => {
-            return item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
+            const id = item.ItemID || item['アイテムID'];
+            const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
+            return id && id.toString().trim() !== "" && isUploaded;
         });
+        console.log("データ受信完了：", allData.length, "件"); // これがコンソールに出れば成功
 
         buildMenu();
         buildHome();
