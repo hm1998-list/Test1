@@ -539,16 +539,16 @@ fetch('https://script.google.com/macros/s/AKfycbwQxlFPFKuE2zYda8BBdt0hPyfrqlUzI2
     .then(res => res.json())
     .then(data => {
         const filteredData = rawData.filter(item => {
-            const id = item.ItemID || item['アイテムID'];
-            const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
-            return id && id.toString().trim() !== "" && isUploaded;
+        const id = item.ItemID || item['アイテムID'];
+        const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
+        return id && id.toString().trim() !== "" && isUploaded;
         });
     
     window.allData = filteredData;
     console.log("データ受信完了！件数:", window.allData.length);
     
     if (window.allData.length === 0) {
-            console.warn("注意：条件に合うデータが0件です。スプレッドシートの『画像UP済み』列を確認してください。");
+        console.warn("注意：条件に合うデータが0件です。スプレッドシートの『画像UP済み』列を確認してください。");
         }
 
         buildMenu();
