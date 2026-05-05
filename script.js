@@ -1,22 +1,86 @@
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwQxlFPFKuE2zYda8BBdt0hPyfrqlUzI2xUrc1Ui_lbyHlrQtyWlL7oUfTtW8OPpcr61Q/exec";
-const CATEGORY_ORDER = ["調度品(一般)", "調度品(台座)", "調度品(卓上)", "調度品(壁掛)", "調度品(敷物)", "内装建材", "庭具", "絵画", "花"];
+let currentLang = 'ja'; // デフォルトは日本語
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxFA7UJoj1Ma6L5cOg2mB_cRBmFAVS9vsum1zyu_BucnDY3AGfd5xf2cr5wyc0SxfunHA/exec";
+const CATEGORY_DEFINITIONS = [
+    { id: "調度品(一般)", icon: "chair", en: "Furnishing", fr: "Meuble", de: "Mobiliar" },
+    { id: "調度品(台座)", icon: "table_bar", en: "Tables", fr: "Table", de: "Tisch/Ablage" },
+    { id: "調度品(卓上)", icon: "interests", en: "Tabletop", fr: "Mobilier de table", de: "Tischdekoration" },
+    { id: "調度品(壁掛)", icon: "wall_lamp", en: "Wall-mounted", fr: "Mobilier mural", de: "Wanddekoration" },
+    { id: "調度品(敷物)", icon: "width_full", en: "Rugs", fr: "Tapis", de: "Teppich" },
+    { id: "内装建材", icon: "meeting_room", en: "Interior", fr: "Second œuvre", de: "Innenausbau" },
+    { id: "庭具", icon: "forest", en: "Outdoor Furnishing", fr: "Meuble de jardin", de: "Gartenausstattung" },
+    { id: "絵画", icon: "manga", en: "Paintings", fr: "Peinture", de: "Gemälde" },
+    { id: "花", icon: "local_florist", en: "Flowers", fr: "Fleurs", de: "Blumen" }
+];
 const SUB_CATEGORY_ORDER = [
-        "机", "椅子/ソファ", "棚/チェスト", "壁/柱/仕切り", "ベッド",
-        "照明", "料理", "時計", "植物",
-        "ぬいぐるみ/マスコット", "置物",
-        "風呂",
-        "旗/額縁/ポスター", "窓",
-        "足場", "水場", "店舗",
-        "天井照明", "内壁", "床材",
-        "機能家具",
-        "ラノシア", "黒衣森", "ザナラーン", 
-        "クルザス/モードゥナ", "ドラヴァニア", "アバラシア", 
-        "ギラバニア", "オサード",
-        "第一世界", "北洋地域", "イルサバード",
-        "古代世界", "星外宙域",
-        "ヨカ・トラル", "サカ・トラル", "アンロスト・ワールド",
-        "その他"
-    ];    
+    { id: "机", en: "Tables", fr: "Tables", de: "Tische" },
+    { id: "椅子/ソファ", en: "Chairs/Sofas", fr: "Chaises/Fauteuils" , fr_outdoor: "Sièges" , de: "Stühle/Sessel/Sofas" , de_outdoor: "Stühle/Bänke" },
+    { id: "棚/チェスト", en: "Shelves/Chests", fr: "Étagères/Coffres", fr_wall: "Étagères" ,de: "Regale/Kommoden" , de_wall: "Regale/Montierbares" },
+    { id: "壁/柱/仕切り", en: "Walls/Pillars/Partitions", fr: "Murs/Colonnes/Cloisons", fr_table: "Murs/Cloisons", de: "Wände/Säulen/Teiler" , de_table: "Wände/Raumteiler" },
+    { id: "ベッド", en: "Beds", fr: "Lits", de: "Betten" },
+    { id: "照明", en: "Lighting", fr: "Éclairage", de: "Beleuchtung" },
+    { id: "料理", en: "Tableware/Foods", fr: "Nourriture", de: "Gerichte" },
+    { id: "時計", en: "Clocks", fr: "Horloges", de: "Chronometer" },
+    { id: "植物", en: "Plants", fr: "Plantes", de: "Pflanzen" },
+    { id: "ぬいぐるみ/マスコット", en: "Stuffed Toy/Mascots", fr: "Peluches/Mascottes", de: "Stofftiere/Modelle" },
+    { id: "置物", en: "Ornaments", fr: "Décorations", de: "Dekorationen" },
+    { id: "風呂", en: "Bathing", fr: "Salle de bain", de: "Bad und Küche" },
+    { id: "旗/額縁/ポスター", en: "Flags/Frames/Postrs", fr: "Bannières/Cadres/Affiches", de: "Bilder/Wandbehänge" },
+    { id: "窓", en: "Windows", fr: "Fenêtres", de: "Fenster" },
+    { id: "足場", en: "Strpping Stones", fr: "Dalles/Escabeaux", de: "Trittsteine/Bretter" },
+    { id: "水場", en: "Ponds/Fountains", fr: "Bassins", de: "Teiche/Brunnen" },
+    { id: "店舗", en: "Stalls", fr: "Étals", de: "Geschäfte" },
+    { id: "天井照明", en: "Ceiling Light", fr: "Luminaire", de: "Deckenleuchte" },
+    { id: "内壁", en: "Internal Wall", fr: "Tapisserie", de: "Innenwand" },
+    { id: "床材", en: "Flooring", fr: "Sol", de: "Boden" },
+    { id: "機能家具", en: "Interactive Furnishing", fr: "Meubles fonctionnels", de: "Funktionales" },
+    { id: "その他", en: "Miscellaneous", fr: "Divers", de: "Allerlei" },
+    
+    { id: "ラノシア", en: "La Noscea", fr: "Noscea", de: "La Noscea" },
+    { id: "黒衣森", en: "The Black Shroud", fr: "Sombrelinceul", de: "Finsterwald" },
+    { id: "ザナラーン", en: "Thanalan", fr: "Thanalan", de: "Thanalan" },
+    { id: "クルザス/モードゥナ", en: "Coerthas/Mor Dhona", fr: "Coerthas/Mor Dhona", de: "Coerthas, Mor Dhona" },
+    { id: "ドラヴァニア", en: "Dravania", fr: "Dravania", de: "Dravania" },
+    { id: "アバラシア", en: "Abalathia’s Spine", fr: "Abalathia", de: "Abalathia" },
+    { id: "ギラバニア", en: "Gyr Abania", fr: "Gyr Abania", de: "Gyr Abania" },
+    { id: "オサード", en: "Othard", fr: "Othard", de: "Othard" },
+    { id: "第一世界", en: "The First", fr: "premier reflet", de: "Erste Splitterwelt" },
+    { id: "北洋地域", en: "The Nothern Empth", fr: "mers du Nord", de: "Nördliche Meere" },
+    { id: "イルサバード", en: "Ilsabard", fr: "Ilsabard", de: "Ilsabard" },
+    { id: "古代世界", en: "The World Unsundered", fr: "ancien monde", de: "Unzersplitterte Welt" },
+    { id: "星外宙域", en: "The Sea of Stars", fr: "espace intersidéral", de: "Kosmos" },
+    { id: "ヨカ・トラル", en: "Yok Tural", fr: "Yok Tural", de: "Yok Tural" },
+    { id: "サカ・トラル", en: "Xak Tural", fr: "Xak Tural", de: "Xak Tural" },
+    { id: "アンロスト・ワールド", en: "Unlost World", fr: "Monde inéphémère", de: "Unverlorene Welt" },
+    
+    { id: "オールドローズ", en: "Oldroses", fr: "Roses", de: "Altrosen" },
+    { id: "パンジー", en: "Violas", fr: "Pensées", de: "Veilchen" },
+    { id: "チェリーブロッサム", en: "Cherry Blossoms", fr: "Fleurs de cerisiers", de: "Kirschblüten" },
+    { id: "マーガレット", en: "Daisies", fr: "Marguerites", de: "Gänseblümchen" },
+    { id: "ブライトリリー", en: "Brightlilies", fr: "Bouquet de lys", de: "Lilien" },
+    { id: "チューリップ", en: "Tulips", fr: "Bouquet de tulipes", de: "Tulpen" },
+    { id: "ダリア", en: "Dahlias", fr: "Bouquet de dahlias", de: "Dahlien" },
+    { id: "カラー", en: "Arums", fr: "Bouquet de callas", de: "Aronstäbe" },
+    { id: "リリーオブバレー", en: "Lilies of the Valley", fr: "Muguet", de: "Maiglöckchen" },
+    { id: "ハイドレインジャ", en: "ハイドレインジャ", fr: "Bouquet d'hortensias", de: "Hortensien" },
+    { id: "カンパニュラ", en: "Campanulas", fr: "Campanules", de: "Glockenblumen" },
+    { id: "ヒヤシンス", en: "Hyacinths", fr: "Jacinthe", de: "Hyazinthen" },
+    { id: "コスモス", en: "Cosmos", fr: "Bouquet de cosmos", de: "Cosmeen" },
+    { id: "カーネーション", en: "Carnations", fr: "Bouquet d'œillets", de: "Nelken" },
+    { id: "胡蝶蘭", en: "Moth Orchids", fr: "Orchidées papillons", de: "Mondorchideen" },
+    { id: "トリテレイア", en: "Triteleia", fr: "Bouquet de triteleia", de: "Triteleia" },
+    { id: "ビエルゴヴァイオレット", en: "Byregotia", fr: "Bouquet de byregotias", de: "Byregotia" },
+    { id: "スイートピー", en: "Sweet Peas", fr: "Bouquet de pois de senteur", de: "Duftwicken" },
+    { id: "モーニンググローリー", en: "Morning Glories", fr: "Belles-de-jour", de: "Trichterwinden" },
+    { id: "クリサンセマム", en: "Chrysanthemums", fr: "Chrysanthèmes", de: "Chrysanthemen" },
+    { id: "ルピナス", en: "Lupins", fr: "Bouquet de lupins", de: "Lupinen" },
+    { id: "サンフラワー", en: "Sunflowers", fr: "Bouquet de tournesols", de: "Sonnenblumen" },
+    { id: "カトレア", en: "Cattleyas", fr: "Bouquet de cattleyas", de: "Cattleyas" },
+    { id: "ペーパーフラワー", en: "Paperflowers", fr: "Bouquet de fleurs de papier", de: "Drillingsblumen" },
+    { id: "チャンパー", en: "Champa", fr: "Plumerias", de: "Plumeria" },
+    { id: "ティーフラワー", en: "Tea Flowers", fr: "Fleurs de thé", de: "Teeblüten" },
+    { id: "コーンフラワー", en: "Cornflowers", fr: "Bouquet de centaurées", de: "Kornblumen" },
+];
+
 const PACKAGE_NAMES = { "7": "黄金のレガシー", "6": "暁月のフィナーレ", "5": "漆黒のヴィランズ", "4": "紅蓮のリベレーター", "3": "蒼天のイシュガルド", "2": "新生エオルゼア" };
 
 let allData = [];
@@ -58,32 +122,44 @@ function loadMoreItems() {
     const grid = document.getElementById('grid');
     const next = displayList.slice(currentIndex, currentIndex + itemsPerPage);
 
-    const latestPatch = Math.max(...allData.map(item => parseFloat(item.patch || item['パッチ']) || 0)).toString();
+    const latestPatch = Math.max(...allData.map(item => parseFloat(item.patch) || 0)).toString();
 
     next.forEach(item => {
-        const itemPatch = (item.patch || item['パッチ'] || "").toString().trim();
+        const itemPatch = (item.patch || "").toString().trim();
         const isPatchFilter = (currentFilter.type === 'patch' || currentFilter.type === 'patch-group');
 
         if (isPatchFilter && itemPatch !== lastRenderedPatch) {
-        const separator = document.createElement('div');
-        separator.className = 'patch-separator';
-        separator.innerHTML = `<span>|| Patch ${itemPatch}</span>`;
-        grid.appendChild(separator);
+            const separator = document.createElement('div');
+            separator.className = 'patch-separator';
+            separator.innerHTML = `<span>|| Patch ${itemPatch}</span>`;
+            grid.appendChild(separator);
+            lastRenderedPatch = itemPatch;
+        }
 
-        lastRenderedPatch = itemPatch;
-    }
-
-        // --- ここからカード作成（既存のロジック） ---
-        const dyeVal = item['染色'] || item.dyeable || item['染色可否'];
-        const marketVal = item['マケボ'] || item.market || item['マケボ取引'];
-        const craftVal = item['製作'] || item.recipe || item['製作可否'];
-        const shopVal = (item['ショップ'] || "").toString().trim();
-        const pvpVal = (item['PvP'] || "").toString().trim();
-        const pveVal = (item['PvE'] || "").toString().trim();
-        const retainerVal = (item['リテイナー'] || "").toString().trim();
-        const voyageVal = (item['潜水艦'] || "").toString().trim();    
-        const itemId = item.ItemID || item['アイテムID'];
+        // --- 多言語対応のためのデータ選択 ---
+        const itemName = item[`name_${currentLang}`] || item.name_ja;
+        const dyeVal = (currentLang === 'ja') ? item.dyeable_ja : item.dyeable_en;
+        const marketVal = (currentLang === 'ja') ? item.market_ja : item.market_en;
+        // 製作、ショップ等はフラグ管理なのでja版をそのまま流用（必要なら後で翻訳対応可）
+        const craftVal = item.recipe; 
+        const shopVal = (item.ショップ || "").toString().trim();
+        const pvpVal = (item.PvP || "").toString().trim();
+        const pveVal = (item.PvE || "").toString().trim();
+        const retainerVal = (item.リテイナー || "").toString().trim();
+        const voyageVal = (item.潜水艦 || "").toString().trim();    
+        const itemId = item.id; // GASのmappingで id: row[colMap["ItemID"]] とした場合
         const currentItemPatch = (item.patch || "").toString();
+
+        // ツールチップのテキストも言語で切り替えるための設定
+        const tooltipText = {
+            dye: (currentLang === 'ja') ? "染色可能" : "Dyeable",
+            market: (currentLang === 'ja') ? "マケボ入手可能" : "Marketable",
+            craft: (currentLang === 'ja') ? "製作可能" : "Craftable",
+            shop: (currentLang === 'ja') ? "NPCショップで購入or交換" : "Purchase/Exchange from NPC",
+            drop: (currentLang === 'ja') ? "ID、討滅戦、宝の地図等から入手可能" : "Drops from Dungeons/Trials/Maps",
+            rite: (currentLang === 'ja') ? "リテイナーベンチャーで入手可能" : "Retainer Ventures",
+            sub: (currentLang === 'ja') ? "潜水艦で入手可能" : "Submersible"
+        };
 
         const card = document.createElement('div');
         card.className = 'cheki-card';
@@ -95,27 +171,31 @@ function loadMoreItems() {
             <div class="photo-area" onclick="openModalByIdx(${allData.indexOf(item)})">
                 <img src="images/${itemId}_front.webp" class="slide-img active" loading="lazy" onerror="this.src='https://placehold.jp/200x200?text=NoImage'">
             </div>
-            <p class="item-name">${item['アイテム名（日）'] || item.name}</p>
+            <p class="item-name">${itemName}</p>
             <div class="card-flags">
-                ${(dyeVal && dyeVal !== '不可') ? `
-                <div class="tooltip-container"><div class="flag-diamond flag-dye"><img src="ui/dye.png" alt="染色" loading="lazy"></div>
-                <span class="fixed-tooltip-content" data-tooltip="染色可能"></span></div>` : ''}
-                ${(marketVal && marketVal !== '不可') ? `
-                <div class="tooltip-container"><div class="flag-diamond flag-market"><img src="ui/marketbord.png" alt="マケボ" loading="lazy"></div>
-                <span class="fixed-tooltip-content" data-tooltip="マケボ入手可能"></span></div>` : ''}
+                ${(dyeVal && dyeVal !== '不可' && dyeVal !== 'No') ? `
+                <div class="tooltip-container"><div class="flag-diamond flag-dye"><img src="ui/dye.png" alt="dye" loading="lazy"></div>
+                <span class="fixed-tooltip-content" data-tooltip="${tooltipText.dye}"></span></div>` : ''}
+                
+                ${(marketVal && marketVal !== '不可' && marketVal !== 'No') ? `
+                <div class="tooltip-container"><div class="flag-diamond flag-market"><img src="ui/marketbord.png" alt="market" loading="lazy"></div>
+                <span class="fixed-tooltip-content" data-tooltip="${tooltipText.market}"></span></div>` : ''}
+                
                 ${(craftVal && craftVal !== '-' && craftVal !== '不可' && craftVal !== '') ? `
-                <div class="tooltip-container"><div class="flag-diamond flag-craft"><img src="ui/craft.png" alt="製作" loading="lazy"></div>
-                <span class="fixed-tooltip-content" data-tooltip="製作可能"></span></div>` : ''}
-                ${(shopVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-shop"><img src="ui/shop.png" alt="ショップ" loading="lazy"></div>   
-                <span class="fixed-tooltip-content" data-tooltip="NPCショップで購入or交換"></span></div>` : ''}
-                ${(pvpVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-pvp"><img src="ui/pvp.png" alt="PvP" loading="lazy"></div>
-                <span class="fixed-tooltip-content" data-tooltip="PvP交換品"></span></div>` : ''}
-                ${(pveVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-drop"><img src="ui/drop.png" alt="PvE" loading="lazy"></div>
-                <span class="fixed-tooltip-content" data-tooltip="ID、討滅戦、宝の地図、特殊フィールド探索等から入手可能"></span></div>` : ''}
-                ${(retainerVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-retainer"><img src="ui/rite.png" alt="リテイナー" loading="lazy"></div>
-                <span class="fixed-tooltip-content" data-tooltip="リテイナーベンチャーで入手可能"></span></div>` : ''}
-                ${(voyageVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-voyage"><img src="ui/voyger.png" alt="潜水艦" loading="lazy"></div>
-                <span class="fixed-tooltip-content" data-tooltip="潜水艦で入手可能"></span></div>` : ''}
+                <div class="tooltip-container"><div class="flag-diamond flag-craft"><img src="ui/craft.png" alt="craft" loading="lazy"></div>
+                <span class="fixed-tooltip-content" data-tooltip="${tooltipText.craft}"></span></div>` : ''}
+                
+                ${(shopVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-shop"><img src="ui/shop.png" alt="shop" loading="lazy"></div>   
+                <span class="fixed-tooltip-content" data-tooltip="${tooltipText.shop}"></span></div>` : ''}
+
+                ${(pveVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-drop"><img src="ui/drop.png" alt="drop" loading="lazy"></div>
+                <span class="fixed-tooltip-content" data-tooltip="${tooltipText.drop}"></span></div>` : ''}
+
+                ${(retainerVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-retainer"><img src="ui/rite.png" alt="rite" loading="lazy"></div>
+                <span class="fixed-tooltip-content" data-tooltip="${tooltipText.rite}"></span></div>` : ''}
+
+                ${(voyageVal === 'あり') ? `<div class="tooltip-container"><div class="flag-diamond flag-voyage"><img src="ui/voyger.png" alt="sub" loading="lazy"></div>
+                <span class="fixed-tooltip-content" data-tooltip="${tooltipText.sub}"></span></div>` : ''}
             </div>
         `;
         grid.appendChild(card);
@@ -126,13 +206,9 @@ function loadMoreItems() {
 }
 
 async function openModalByIdx(originalIdx, retryCount = 0) {
-    // データが空、または指定のインデックスが存在しない場合
+    // --- (冒頭のデータチェック・お掃除処理はそのまま維持) ---
     if (!allData || allData.length === 0 || !allData[originalIdx]) {
-        if (retryCount > 20) { // 10秒待ってもダメなら
-            console.error("データの読み込みがタイムアウトしました。");
-            return;
-        }
-        console.log(`データ受信待ち... (${retryCount + 1}回目)`);
+        if (retryCount > 20) return;
         setTimeout(() => openModalByIdx(originalIdx, retryCount + 1), 500); 
         return;
     }
@@ -159,17 +235,67 @@ async function openModalByIdx(originalIdx, retryCount = 0) {
 
     currentModalIdx = originalIdx;
     const item = allData[originalIdx];
-    const itemId = item.ItemID || item['アイテムID'];
+    const itemId = item.id; // GASのmappingで id: row[colMap["ItemID"]] とした場合
 
-    document.getElementById('modalTitle').innerText = item['アイテム名（日）'] || item.name;
-    document.getElementById('modalMainCategory').innerText = item.category || "";
-    document.getElementById('modalSubCategory').innerText = item['FF14サブカテゴリー'] || "";
-    document.getElementById('modalDye').innerText = item['dyeable'] || item['染色'] || "不可";
-    document.getElementById('modalMarket').innerText = item['market'] || item['マケボ'] || "不可";
-    document.getElementById('modalCraft').innerText = item['recipe'] || item['製作'] || "-";
-    document.getElementById('modalHowToGet').innerText = item['入手方法'] || "確認中";
-    document.getElementById('modalComment').innerText = item['note'] || "備考はありません";
+    // --- 【多言語対応】表示用テキストの選択 ---
+    const itemName = item[`name_${currentLang}`] || item.name_ja;
+    const catName = (currentLang === 'ja') ? item.cat_ja : item.cat_en;
+    const subCatName = (currentLang === 'ja') ? item.sub_ja : item.sub_en;
+    const dyeVal = (currentLang === 'ja') ? item.dyeable_ja : item.dyeable_en;
+    const marketVal = (currentLang === 'ja') ? item.market_ja : item.market_en;
+    const howto = (currentLang === 'ja') ? item.howto_ja : (item.howto_en || item.howto_ja);
+    const note = item.note || ""; // 備考も将来的に翻訳するなら item[`note_${currentLang}`] || item.note
+    
+    // --- ラベルの翻訳データ ---
+    const uiLabels = {
+        ja: {
+            dye: "染色",
+            market: "マケボ取引",
+            craft: "製作",
+            howto: "入手方法",
+            note: "備考"
+        },
+        en: {
+            dye: "Dyeable",
+            market: "Marketboard",
+            craft: "Recipe",
+            howto: "How to Obtain",
+            note: "Note"
+        },
+        fr: {
+            dye: "Teinture",
+            market: "Tableau des ventes",
+            craft: "Recette",
+            howto: "Comment obtenir",
+            note: "Note"
+        },
+        de: {
+            dye: "Färben",
+            market: "Marktbrett",
+            craft: "Rezept",
+            howto: "Beschaffung",
+            note: "Notiz"
+        }
+    };
 
+    // --- ラベルの書き換え実行 ---
+    const labels = uiLabels[currentLang] || uiLabels.ja;
+
+    document.getElementById('labelDye').innerText = labels.dye;
+    document.getElementById('labelMarket').innerText = labels.market;
+    document.getElementById('labelCraft').innerText = labels.craft;
+    document.getElementById('labelHowTo').innerText = labels.howto;
+    document.getElementById('labelNote').innerText = labels.note;
+    
+    document.getElementById('modalTitle').innerText = itemName;
+    document.getElementById('modalMainCategory').innerText = catName;
+    document.getElementById('modalSubCategory').innerText = subCatName;
+    document.getElementById('modalDye').innerText = dyeVal || (currentLang === 'ja' ? "不可" : "No");
+    document.getElementById('modalMarket').innerText = marketVal || (currentLang === 'ja' ? "不可" : "No");
+    document.getElementById('modalCraft').innerText = item.recipe || "-";
+    document.getElementById('modalHowToGet').innerText = howto || (currentLang === 'ja' ? "確認中" : "Under review");
+    document.getElementById('modalComment').innerText = note || (currentLang === 'ja' ? "備考はありません" : "No notes available.");
+    
 // 【修正】onerror で外部サイトに繋がず、シンプルにする
     const photoArea = document.getElementById('modalPhoto');
     photoArea.innerHTML = `<img src="images/${itemId}_front.webp" id="mainModalImg" loading="lazy" onerror="this.style.display='none';">`;
@@ -195,7 +321,7 @@ async function openModalByIdx(originalIdx, retryCount = 0) {
     const dotContainer = document.createElement('div');
     dotContainer.id = 'modalDots';
 
-    const suffixList = ['front', 'side', 'back', 'bottom', 'top', 'dye', 'night'];
+    const suffixList = ['front', 'side', 'side2', 'back', 'bottom', 'top', 'dye', 'night'];
     let foundCount = 0;
     const isMobile = window.innerWidth <= 768;
 
@@ -297,27 +423,27 @@ function changeModalItem(dir) {
 function closeModal() { document.getElementById('itemModal').classList.remove('visible'); }
 
 function buildHome() {
-    const categoryIcons = {
-        "内装建材": "meeting_room",
-        "調度品(一般)": "chair",
-        "調度品(台座)": "table_bar",
-        "調度品(卓上)": "interests",
-        "調度品(壁掛)": "wall_lamp",
-        "調度品(敷物)": "width_full",
-        "絵画": "manga",
-        "庭具": "forest",
-        "花": "local_florist"
-    };
+    // 検索窓のプレースホルダーもついでに翻訳
+    const searchInput = document.querySelector('.homeSearch'); // クラス名はご自身のものに合わせてください
+    if (searchInput) {
+        searchInput.placeholder = (currentLang === 'ja') ? "家具の名前で検索..." : "Search for furniture...";
+    }
 
-    let cats = [...new Set(allData.map(i => i.category))].filter(Boolean);
-    cats = cats.sort((a,b) => (CATEGORY_ORDER.indexOf(a) - CATEGORY_ORDER.indexOf(b)));
+    const homeCatList = document.getElementById('home-cat-list');
+    homeCatList.innerHTML = CATEGORY_DEFINITIONS.map(cat => {
+        // 現在の言語に合わせて表示名を選択（jaならid、それ以外なら定義した言語名）
+        const displayName = (currentLang === 'ja') ? cat.id : (cat[currentLang] || cat.en);
+        
+        // フィルタリングに使う値（スプシのデータと一致させる必要がある）
+        // スプシ側も cat_en に切り替わっているなら cat[currentLang]、
+        // スプシ側が日本語固定なら cat.id を使います。
+        // 前回の render 関数の修正に合わせるなら、表示名(displayName)を渡すのがスムーズです。
+        const filterValue = displayName;
 
-    document.getElementById('home-cat-list').innerHTML = cats.map(c => {
-        const iconName = categoryIcons[c] || "inventory_2";
         return `
-            <div class="cat-card" onclick="filterBy('category', '${c}')">
-                <span class="material-symbols-rounded">${iconName}</span>
-                <span class="cat-name">${c}</span>
+            <div class="cat-card" onclick="filterBy('category', '${filterValue}')">
+                <span class="material-symbols-rounded">${cat.icon}</span>
+                <span class="cat-name">${displayName}</span>
             </div>`;
     }).join('');
 }
@@ -337,37 +463,80 @@ function showHome(addHistory = true) {
 }
 
 function buildMenu() {
-    let cats = [...new Set(allData.map(i => i.category))].filter(Boolean);
-    cats = cats.sort((a,b) => (CATEGORY_ORDER.indexOf(a) - CATEGORY_ORDER.indexOf(b)));
-    document.getElementById('side-cat-list').innerHTML = cats.map(c => {
+    const sideCatList = document.getElementById('side-cat-list');
+    if (!sideCatList) return;
 
-        let subs = [...new Set(allData.filter(i => i.category === c).map(i => i['FF14サブカテゴリー']))].filter(Boolean);
+    sideCatList.innerHTML = CATEGORY_DEFINITIONS.map(catDef => {
+        // 【修正】表示名は各言語、検索キー(filterValue)は英語(catDef.en)に固定
+        const cDisplayName = (currentLang === 'ja') ? catDef.id : (catDef[currentLang] || catDef.en);
+        const filterValue = catDef.en; // 検索には常に英語名を使う
 
+        let subs = [...new Set(allData
+            .filter(i => i.cat_ja === catDef.id) 
+            .map(i => i.sub_ja)
+        )].filter(Boolean);
+
+        // ソート (SUB_CATEGORY_ORDER の id と比較)
         subs.sort((a, b) => {
-            let indexA = SUB_CATEGORY_ORDER.indexOf(a);
-            let indexB = SUB_CATEGORY_ORDER.indexOf(b);
-
+            let indexA = SUB_CATEGORY_ORDER.findIndex(o => o.id === a);
+            let indexB = SUB_CATEGORY_ORDER.findIndex(o => o.id === b);
             if (indexA === -1) indexA = 999;
             if (indexB === -1) indexB = 999;
-
             return indexA - indexB;
         });
 
-        return `<div class="nav-item-container"><button class="nav-item-parent" onclick="toggleSubMenu(this, '${c}')"><span><i class="fa-solid fa-angle-right"></i> ${c}</span></button><div class="sub-menu"><button class="nav-item-sub" onclick="filterBy('category', '${c}', 'all')">すべて表示</button>${subs.map(s => `<button class="nav-item-sub" onclick="filterBy('category', '${c}', '${s}')">${s}</button>`).join('')}</div></div>`;
+        const allLabel = (currentLang === 'ja') ? "すべて表示" : "Show All";
+
+        // サブメニューのHTML
+        const subMenuHtml = subs.map(sId => {
+            const subDef = SUB_CATEGORY_ORDER.find(o => o.id === sId);
+            const sDisplayName = (currentLang === 'ja') ? sId : (subDef ? (subDef[currentLang] || subDef.en) : sId);
+            // 【修正】サブカテゴリも検索キーは英語(subDef.en)にする
+            const subFilterValue = subDef ? subDef.en : sId;
+            
+            return `<button class="nav-item-sub" onclick="filterBy('category', '${filterValue}', '${subFilterValue}')">${sDisplayName}</button>`;
+        }).join('');
+        
+        return `
+            <div class="nav-item-container">
+                <button class="nav-item-parent" onclick="toggleSubMenu(this, '${filterValue}')">
+                    <span><i class="fa-solid fa-angle-right"></i> ${cDisplayName}</span>
+                </button>
+                <div class="sub-menu">
+                    <button class="nav-item-sub" onclick="filterBy('category', '${filterValue}', 'all')">Show All</button>
+                    ${subMenuHtml}
+                </div>
+            </div>`;
     }).join('');
 
-    const patches = [...new Set(allData.map(i => i.patch))].sort((a,b) => parseFloat(b.toString().replace('Patch','')) - parseFloat(a.toString().replace('Patch','')));
+    // --- 2. パッチバージョン部分 (ここも共通の allLabel を使用) ---
+    const patches = [...new Set(allData.map(i => i.patch))].sort((a,b) => 
+        parseFloat(b.toString().replace('Patch','')) - parseFloat(a.toString().replace('Patch',''))
+    );
+    
     const groups = {};
     patches.forEach(p => {
         const major = p.toString().replace('Patch','').trim().split('.')[0];
-        const gName = PACKAGE_NAMES[major] ? `${PACKAGE_NAMES[major]} (${major}.x)` : `${major}.x`;
+        const baseName = PACKAGE_NAMES[major] || "";
+        const gName = baseName ? `${baseName} (${major}.x)` : `${major}.x`;
         if(!groups[gName]) groups[gName] = [];
         groups[gName].push(p);
     });
 
+    const allLabelPatch = (currentLang === 'ja') ? "すべて表示" : "Show All";
+
     document.getElementById('side-patch-list').innerHTML = Object.keys(groups).map(g => {
         const major = Object.keys(PACKAGE_NAMES).find(k => g.includes(PACKAGE_NAMES[k]));
-        return `<div class="nav-item-container"><button class="nav-item-parent" onclick="toggleSubMenu(this, 'patch-group:${major}')"><span><i class="fa-solid fa-tag"></i> ${g}</span></button><div class="sub-menu"><button class="nav-item-sub" onclick="filterBy('patch-group', '${major}', 'all')">すべて表示</button>${groups[g].map(p => `<button class="nav-item-sub" onclick="filterBy('patch', '${p}')">${formatPatch(p)}</button>`).join('')}</div></div>`;
+        return `
+            <div class="nav-item-container">
+                <button class="nav-item-parent" onclick="toggleSubMenu(this, 'patch-group:${major}')">
+                    <span><i class="fa-solid fa-tag"></i> ${g}</span>
+                </button>
+                <div class="sub-menu">
+                    <button class="nav-item-sub" onclick="filterBy('patch-group', '${major}', 'all')">${allLabelPatch}</button>
+                    ${groups[g].map(p => `<button class="nav-item-sub" onclick="filterBy('patch', '${p}')">${formatPatch(p)}</button>`).join('')}
+                </div>
+            </div>`;
     }).join('');
 }
 
@@ -482,21 +651,42 @@ function render() {
     currentIndex = 0;
 
     displayList = allData.filter(item => {
+        // 1. 検索フィルター
         if (currentFilter.type === 'search') {
             const sKey = normalizeText(currentFilter.value);
-            const itemName = normalizeText(item['アイテム名（日）'] || item.name || "");
+            // 今選ばれている言語の名前を取得。なければ日本語を出す
+            const targetName = item[`name_${currentLang}`] || item.name_ja || "";
+            const itemName = normalizeText(targetName);
             return itemName.includes(sKey);
         }
+
+        // 2. パッチフィルター
         if (currentFilter.type === 'patch') {
             const itemPatch = (item.patch || "").toString().replace('Patch', '').trim();
             const filterValue = currentFilter.value.toString().replace('Patch', '').trim();            
             return itemPatch.startsWith(filterValue);
         }
-        const matchMain = (currentFilter.type === 'category' ? item.category === currentFilter.value : 
-                          currentFilter.type === 'patch-group' ? item.patch.toString().startsWith(currentFilter.value + '.') : true);
-        const matchSub = (currentFilter.subValue === 'all' || item['FF14サブカテゴリー'] === currentFilter.subValue);        
+
+        // 3. カテゴリー/パッチグループ/サブカテゴリーの判定[cite: 1]
+        let matchMain = true;
+        if (currentFilter.type === 'category') {
+            // 日本語なら cat_ja、それ以外なら cat_en で比較する[cite: 1]
+            const itemCat = (currentLang === 'ja') ? item.cat_ja : item.cat_en;
+            matchMain = (itemCat === currentFilter.value);
+        } else if (currentFilter.type === 'patch-group') {
+            matchMain = item.patch.toString().startsWith(currentFilter.value + '.');
+        }
+
+        // サブカテゴリーの判定[cite: 1]
+        let matchSub = true;
+        if (currentFilter.subValue !== 'all') {
+            const itemSub = (currentLang === 'ja') ? item.sub_ja : item.sub_en;
+            matchSub = (itemSub === currentFilter.subValue);
+        }
+        
         return matchMain && matchSub;
     });
+
     loadMoreItems();
 }
 
@@ -545,10 +735,10 @@ window.addEventListener('keydown', (e) => {
     else if (e.key === 'Escape') closeModal();
 });
 
-fetch('https://script.google.com/macros/s/AKfycbwQxlFPFKuE2zYda8BBdt0hPyfrqlUzI2xUrc1Ui_lbyHlrQtyWlL7oUfTtW8OPpcr61Q/exec')
+fetch('https://script.google.com/macros/s/AKfycbxFA7UJoj1Ma6L5cOg2mB_cRBmFAVS9vsum1zyu_BucnDY3AGfd5xf2cr5wyc0SxfunHA/exec')
     .then(res => res.json())
     .then(data => {
-        const filteredData = rawData.filter(item => {
+        const filteredData = data.filter(item => {
         const id = item.ItemID || item['アイテムID'];
         const isUploaded = item['画像UP済み'] === true || item['画像UP済み'] === "TRUE";
         return id && id.toString().trim() !== "" && isUploaded;
@@ -677,7 +867,7 @@ function handleSwipe() {
     // 現在開いているアイテムのデータを特定
     const item = allData[currentModalIdx];
     const itemId = item.ItemID || item['アイテムID'];
-    const suffixList = ['front', 'side', 'back', 'bottom', 'top', 'dye', 'night'];    
+    const suffixList = ['front', 'side', 'side2', 'back', 'bottom', 'top', 'dye', 'night'];    
     // サムネイル（画像）が1枚しかなければスワイプ不要なので終了
     const thumbs = document.querySelectorAll('.thumb-nav img');
     if (thumbs.length <= 1) return;
@@ -811,3 +1001,23 @@ window.addEventListener('popstate', function(e) {
         showHome(false);
     }
 });
+
+function switchLang(lang) {
+    currentLang = lang;
+    
+    // ボタンの見た目を切り替え
+    document.querySelectorAll('.lang-switcher button').forEach(btn => btn.classList.remove('active'));
+    // event.targetだと画像などを踏んだ時にバグる可能性があるため、確実にボタンを探すか、引数から調整します
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+
+    // --- ここが重要！ ---
+    // 言語を切り替えたら、一旦「ホーム」に戻すか、
+    // 現在のフィルター値を新しい言語の名前に変換する必要があります。
+    // 今回は一番安全で確実な「言語を変えたら一度ホームに戻す」処理を追加します。
+    
+    buildMenu();
+    buildHome();
+    showHome(); // 言語を変えたらトップへ戻す（フィルターの不整合を防ぐため）
+}
