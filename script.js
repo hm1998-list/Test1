@@ -81,7 +81,14 @@ const SUB_CATEGORY_ORDER = [
     { id: "コーンフラワー", en: "Cornflowers", fr: "Bouquet de centaurées", de: "Kornblumen" },
 ];
 
-const PACKAGE_NAMES = { "7": "黄金のレガシー", "6": "暁月のフィナーレ", "5": "漆黒のヴィランズ", "4": "紅蓮のリベレーター", "3": "蒼天のイシュガルド", "2": "新生エオルゼア" };
+const PACKAGE_NAMES = {
+    "7": { ja: "黄金のレガシー", en: "Dawntrail", fr: "Dawntrail", de: "Dawntrail" },
+    "6": { ja: "暁月のフィナーレ", en: "Endwalker", fr: "Endwalker", de: "Endwalker" },
+    "5": { ja: "漆黒のヴィランズ", en: "Shadowbringers", fr: "Shadowbringers", de: "Shadowbringers" },
+    "4": { ja: "紅蓮のリベレーター", en: "Stormblood", fr: "Stormblood", de: "Stormblood" },
+    "3": { ja: "蒼天のイシュガルド", en: "Heavensward", fr: "Heavensward", de: "Heavensward" },
+    "2": { ja: "新生エオルゼア", en: "A Realm Reborn", fr: "A Realm Reborn", de: "A Realm Reborn" }
+};
 
 let allData = [];
 let currentFilter = { type: 'all', value: 'all', subValue: 'all' };
@@ -147,7 +154,7 @@ function loadMoreItems() {
         const pveVal = (item.PvE || "").toString().trim();
         const retainerVal = (item.リテイナー || "").toString().trim();
         const voyageVal = (item.潜水艦 || "").toString().trim();    
-        const itemId = item.id; // GASのmappingで id: row[colMap["ItemID"]] とした場合
+        const itemId = item.ItemID || item['アイテムID'];
         const currentItemPatch = (item.patch || "").toString();
 
         // ツールチップのテキストも言語で切り替えるための設定
@@ -235,7 +242,7 @@ async function openModalByIdx(originalIdx, retryCount = 0) {
 
     currentModalIdx = originalIdx;
     const item = allData[originalIdx];
-    const itemId = item.id; // GASのmappingで id: row[colMap["ItemID"]] とした場合
+    const itemId = item.ItemID || item['アイテムID'];
 
     // --- 【多言語対応】表示用テキストの選択 ---
     const itemName = item[`name_${currentLang}`] || item.name_ja;
@@ -423,31 +430,36 @@ function changeModalItem(dir) {
 function closeModal() { document.getElementById('itemModal').classList.remove('visible'); }
 
 function buildHome() {
-    // 検索窓のプレースホルダーもついでに翻訳
-    const searchInput = document.querySelector('.homeSearch'); // クラス名はご自身のものに合わせてください
+    const searchInput = document.getElementById('homeSearch');
     if (searchInput) {
-        searchInput.placeholder = (currentLang === 'ja') ? "家具の名前で検索..." : "Search for furniture...";
+        // 言語に応じたプレースホルダー
+        const placeholders = {
+            ja: "家具の名前で検索...",
+            en: "Search for furniture...",
+            fr: "Chercher un meuble...",
+            de: "Möbel suchen..."
+        };
+        searchInput.placeholder = placeholders[currentLang] || placeholders.ja;
     }
 
     const homeCatList = document.getElementById('home-cat-list');
+    if (!homeCatList) return;
+
+    // カテゴリー定義（CATEGORY_DEFINITIONS）に基づいてループを回す
     homeCatList.innerHTML = CATEGORY_DEFINITIONS.map(cat => {
-        // 現在の言語に合わせて表示名を選択（jaならid、それ以外なら定義した言語名）
+        // 表示用の名前を決定
         const displayName = (currentLang === 'ja') ? cat.id : (cat[currentLang] || cat.en);
         
-        // フィルタリングに使う値（スプシのデータと一致させる必要がある）
-        // スプシ側も cat_en に切り替わっているなら cat[currentLang]、
-        // スプシ側が日本語固定なら cat.id を使います。
-        // 前回の render 関数の修正に合わせるなら、表示名(displayName)を渡すのがスムーズです。
-        const filterValue = displayName;
+        // 検索キーは英語名で固定
+        const filterKey = cat.en;
 
         return `
-            <div class="cat-card" onclick="filterBy('category', '${filterValue}')">
+            <div class="cat-card" onclick="filterBy('category', '${filterKey}', 'all')">
                 <span class="material-symbols-rounded">${cat.icon}</span>
                 <span class="cat-name">${displayName}</span>
             </div>`;
     }).join('');
 }
-
 
 function showHome(addHistory = true) {
     document.getElementById('home-view').style.display = 'block';
@@ -485,40 +497,48 @@ function buildMenu() {
             return indexA - indexB;
         });
 
-        const allLabel = (currentLang === 'ja') ? "すべて表示" : "Show All";
+        const allLabel = (currentLang === 'ja') ? "すべて" : "Show All";
 
         // サブメニューのHTML
         const subMenuHtml = subs.map(sId => {
             const subDef = SUB_CATEGORY_ORDER.find(o => o.id === sId);
             const sDisplayName = (currentLang === 'ja') ? sId : (subDef ? (subDef[currentLang] || subDef.en) : sId);
-            // 【修正】サブカテゴリも検索キーは英語(subDef.en)にする
             const subFilterValue = subDef ? subDef.en : sId;
-            
+
             return `<button class="nav-item-sub" onclick="filterBy('category', '${filterValue}', '${subFilterValue}')">${sDisplayName}</button>`;
         }).join('');
-        
+
         return `
             <div class="nav-item-container">
                 <button class="nav-item-parent" onclick="toggleSubMenu(this, '${filterValue}')">
                     <span><i class="fa-solid fa-angle-right"></i> ${cDisplayName}</span>
                 </button>
                 <div class="sub-menu">
-                    <button class="nav-item-sub" onclick="filterBy('category', '${filterValue}', 'all')">Show All</button>
+                    <button class="nav-item-sub" onclick="filterBy('category', '${filterValue}', 'all')">${allLabel}</button>
                     ${subMenuHtml}
                 </div>
             </div>`;
     }).join('');
 
-    // --- 2. パッチバージョン部分 (ここも共通の allLabel を使用) ---
+    // --- 2. パッチバージョン部分 ---
     const patches = [...new Set(allData.map(i => i.patch))].sort((a,b) => 
         parseFloat(b.toString().replace('Patch','')) - parseFloat(a.toString().replace('Patch',''))
     );
-    
+
     const groups = {};
     patches.forEach(p => {
         const major = p.toString().replace('Patch','').trim().split('.')[0];
-        const baseName = PACKAGE_NAMES[major] || "";
-        const gName = baseName ? `${baseName} (${major}.x)` : `${major}.x`;
+
+        const pkg = PACKAGE_NAMES[major];
+        let gName = "";
+
+        if (pkg) {
+            const baseName = (currentLang === 'ja') ? pkg.ja : pkg.en;
+            gName = `${baseName} (${major}.x)`;
+        } else {
+            gName = `${major}.x`;
+        }
+
         if(!groups[gName]) groups[gName] = [];
         groups[gName].push(p);
     });
@@ -526,18 +546,19 @@ function buildMenu() {
     const allLabelPatch = (currentLang === 'ja') ? "すべて表示" : "Show All";
 
     document.getElementById('side-patch-list').innerHTML = Object.keys(groups).map(g => {
-        const major = Object.keys(PACKAGE_NAMES).find(k => g.includes(PACKAGE_NAMES[k]));
+        const majorMatch = g.match(/\((\d+)\.x\)/);
+        const major = majorMatch ? majorMatch[1] : "";
         return `
-            <div class="nav-item-container">
-                <button class="nav-item-parent" onclick="toggleSubMenu(this, 'patch-group:${major}')">
-                    <span><i class="fa-solid fa-tag"></i> ${g}</span>
-                </button>
-                <div class="sub-menu">
-                    <button class="nav-item-sub" onclick="filterBy('patch-group', '${major}', 'all')">${allLabelPatch}</button>
-                    ${groups[g].map(p => `<button class="nav-item-sub" onclick="filterBy('patch', '${p}')">${formatPatch(p)}</button>`).join('')}
-                </div>
-            </div>`;
-    }).join('');
+        <div class="nav-item-container">
+            <button class="nav-item-parent" onclick="toggleSubMenu(this, 'patch-group:${major}')">
+                <span><i class="fa-solid fa-tag"></i> ${g}</span>
+            </button>
+            <div class="sub-menu">
+                <button class="nav-item-sub" onclick="filterBy('patch-group', '${major}')">${allLabelPatch}</button>
+                ${groups[g].map(p => `<button class="nav-item-sub" onclick="filterBy('patch', '${p}')">${formatPatch(p)}</button>`).join('')}
+            </div>
+        </div>`;
+}).join('');
 }
 
 function toggleSubMenu(btn, val) {
@@ -571,13 +592,36 @@ function toggleSubMenu(btn, val) {
 
 function filterBy(type, val, sub = 'all', addHistory = true) {
     currentFilter = { type, value: val, subValue: sub };
+    
+    const homeLabels = {
+        ja: "Homeへ戻る",
+        en: "Back to Home",
+        fr: "Retour à l'accueil",
+        de: "Zurück zur Startseite"
+    };
+    const backTextElem = document.getElementById('back-home-text');
+    if (backTextElem) {
+        backTextElem.innerText = homeLabels[currentLang] || homeLabels.ja;
+    }
+    
     document.getElementById('home-view').style.display = 'none';
     document.getElementById('catalog-view').style.display = 'block';
     document.getElementById('about-view').style.display = 'none'; // Aboutが開いてるかもしれないので念のため
-    
     let title = val;
-    if(type === 'patch-group') title = (PACKAGE_NAMES[val] || val) + ` (${val}.x)`;
-    else if(type === 'patch') title = formatPatch(val);
+    
+    if (type === 'category') {
+        // カテゴリー定義から一致するものを探し、現在の言語名を取得
+        const catDef = CATEGORY_DEFINITIONS.find(c => c.en === val || c.id === val);
+        if (catDef) {
+            title = (currentLang === 'ja') ? catDef.id : (catDef[currentLang] || catDef.en);
+        }
+    } else if (type === 'patch-group') {
+        const pkg = PACKAGE_NAMES[val];
+        // 現在の言語(FR/DE)があれば取得、なければ英語(en)、最悪日本語(ja)
+        const baseName = pkg ? (pkg[currentLang] || pkg.en || pkg.ja) : val;
+        title = `${baseName} (${val}.x)`;
+    }
+    
     document.getElementById('view-title').innerText = title;
 
     updateTopTags();
@@ -585,48 +629,85 @@ function filterBy(type, val, sub = 'all', addHistory = true) {
     window.scrollTo(0,0);
 
     if (addHistory) {
-        history.pushState({ 
-            page: 'catalog', 
-            type: type, 
-            value: val, 
-            subValue: sub 
-        }, '', `#${type}=${val}`);
+        const hash = (type === 'category') ? `category=${val}` : `${type}=${val}`;
+        history.pushState({ page: 'catalog', type, value: val, subValue: sub }, '', `#${hash}`);
     }
 }
 
 function updateTopTags() {
     const area = document.getElementById('tag-area');
+    const titleElem = document.getElementById('view-title');
     let html = '';
-    if(currentFilter.type === 'category') {
+    
+    if (titleElem) {
+        if (currentFilter.type === 'patch-group' || currentFilter.type === 'patch') {
+            const major = currentFilter.type === 'patch-group' 
+                ? currentFilter.value 
+                : currentFilter.value.toString().replace('Patch','').split('.')[0].trim();
+            
+            const pkg = PACKAGE_NAMES[major];
+            const baseName = pkg ? (pkg[currentLang] || pkg.en || pkg.ja) : major;
+            
+            if (currentFilter.type === 'patch-group') {
+                titleElem.innerText = `${baseName} (${major}.x)`;
+            } else {
+                titleElem.innerText = formatPatch(currentFilter.value);
+            }
+        }
+    }
 
-        const subs = [...new Set(allData.filter(i => i.category === currentFilter.value).map(i => i['FF14サブカテゴリー']))].filter(Boolean);
+    if (currentFilter.type === 'category') {
+        const filteredItems = allData.filter(i => 
+            i.Category === currentFilter.value || 
+            i['カテゴリー'] === currentFilter.value || 
+            i.cat_en === currentFilter.value
+        );
+        
+        const subsEn = [...new Set(filteredItems.map(i => i.SubCategory || i.sub_en || i['FF14サブカテゴリー']))].filter(Boolean);
 
-        subs.sort((a, b) => {
-            let indexA = SUB_CATEGORY_ORDER.indexOf(a);
-            let indexB = SUB_CATEGORY_ORDER.indexOf(b);
+        // ソート（SUB_CATEGORY_ORDER の en プロパティと比較）
+        subsEn.sort((a, b) => {
+            let indexA = SUB_CATEGORY_ORDER.findIndex(o => o.en === a);
+            let indexB = SUB_CATEGORY_ORDER.findIndex(o => o.en === b);
             if (indexA === -1) indexA = 999;
             if (indexB === -1) indexB = 999;
             return indexA - indexB;
         });
 
-        html += `<div class="tag-chip ${currentFilter.subValue === 'all' ? 'active' : ''}" onclick="filterBy('category', '${currentFilter.value}', 'all')">すべて</div>`;
-        subs.forEach(s => { html += `<div class="tag-chip ${currentFilter.subValue === s ? 'active' : ''}" onclick="filterBy('category', '${currentFilter.value}', '${s}')">${s}</div>`; });
-    } else if(currentFilter.type === 'patch-group' || currentFilter.type === 'patch') {
+        const allLabel = (currentLang === 'ja') ? "すべて" : "All";
+        html += `<div class="tag-chip ${currentFilter.subValue === 'all' ? 'active' : ''}" onclick="filterBy('category', '${currentFilter.value}', 'all')">${allLabel}</div>`;
+
+        subsEn.forEach(sEn => {
+            // 表示用の名前を辞書から取得（なければIDをそのまま出す）
+            const subDef = SUB_CATEGORY_ORDER.find(o => o.en === sEn);
+            const sDisplayName = (currentLang === 'ja') 
+                ? (subDef ? subDef.id : sEn) 
+                : (subDef ? (subDef[currentLang] || subDef.en) : sEn);
+            
+            const active = (currentFilter.subValue === sEn);
+            html += `<div class="tag-chip ${active ? 'active' : ''}" onclick="filterBy('category', '${currentFilter.value}', '${sEn}')">${sDisplayName}</div>`;
+        });
+
+    } else if (currentFilter.type === 'patch-group' || currentFilter.type === 'patch') {
+        // パッチ側のチップ生成ロジック（ここは既存のものを活かしつつ、微調整）
         const major = currentFilter.type === 'patch-group' ? currentFilter.value : currentFilter.value.toString().replace('Patch','').split('.')[0].trim();
         const chips = [...new Set(allData.map(i => i.patch.toString().replace('Patch','').trim()))]
             .filter(p => p.startsWith(major + '.') && p.split('.')[1].length === 1)
             .sort((a,b) => parseFloat(a) - parseFloat(b));
-        html += `<div class="tag-chip ${currentFilter.type === 'patch-group' ? 'active' : ''}" onclick="filterBy('patch-group', '${major}')">すべて</div>`;
+            
+        const allLabel = (currentLang === 'ja') ? "すべて" : "All";
+        html += `<div class="tag-chip ${currentFilter.type === 'patch-group' ? 'active' : ''}" onclick="filterBy('patch-group', '${major}')">${allLabel}</div>`;
         chips.forEach(p => {
             const active = currentFilter.type === 'patch' && currentFilter.value.toString().replace('Patch','').trim().startsWith(p);
             html += `<div class="tag-chip ${active ? 'active' : ''}" onclick="filterBy('patch', '${p}')">Patch ${p}</div>`;
         });
     }
+
     if (!html) {
         area.innerHTML = '';
         return;
     }
-    // ★ チップたちを包むコンテナと、その下に開閉バーを置く構造
+
     area.innerHTML = `
         <div id="sub-cat-container" class="sub-cat-content open">
             ${html}
@@ -654,7 +735,6 @@ function render() {
         // 1. 検索フィルター
         if (currentFilter.type === 'search') {
             const sKey = normalizeText(currentFilter.value);
-            // 今選ばれている言語の名前を取得。なければ日本語を出す
             const targetName = item[`name_${currentLang}`] || item.name_ja || "";
             const itemName = normalizeText(targetName);
             return itemName.includes(sKey);
@@ -667,21 +747,25 @@ function render() {
             return itemPatch.startsWith(filterValue);
         }
 
-        // 3. カテゴリー/パッチグループ/サブカテゴリーの判定[cite: 1]
+        // --- ここから修正：3. カテゴリー/パッチグループの判定 ---
         let matchMain = true;
         if (currentFilter.type === 'category') {
-            // 日本語なら cat_ja、それ以外なら cat_en で比較する[cite: 1]
-            const itemCat = (currentLang === 'ja') ? item.cat_ja : item.cat_en;
-            matchMain = (itemCat === currentFilter.value);
+            matchMain = (
+                item.Category === currentFilter.value || 
+                item['カテゴリー'] === currentFilter.value || 
+                item.cat_en === currentFilter.value
+            );
         } else if (currentFilter.type === 'patch-group') {
             matchMain = item.patch.toString().startsWith(currentFilter.value + '.');
         }
 
-        // サブカテゴリーの判定[cite: 1]
         let matchSub = true;
         if (currentFilter.subValue !== 'all') {
-            const itemSub = (currentLang === 'ja') ? item.sub_ja : item.sub_en;
-            matchSub = (itemSub === currentFilter.subValue);
+            matchSub = (
+                item.SubCategory === currentFilter.subValue || 
+                item['FF14サブカテゴリー'] === currentFilter.subValue || 
+                item.sub_en === currentFilter.subValue
+            );
         }
         
         return matchMain && matchSub;
@@ -698,18 +782,24 @@ function setSubFilter(val, el) {
     }
 
 function handleSearch(e) {
-    // Enterキーが押された時だけ実行
     if (e.key === 'Enter') {
         const val = e.target.value.trim();
         if (!val) return;
         currentFilter = { type: 'search', value: val, subValue: 'all' };
+        
+        // 言語に応じた「検索結果」の表記
+        const searchLabels = {
+            ja: `検索結果: ${val}`,
+            en: `Search Results: ${val}`,
+            fr: `Résultats de recherche: ${val}`,
+            de: `Suchergebnisse: ${val}`
+        };
+        
         document.getElementById('home-view').style.display = 'none';
         document.getElementById('catalog-view').style.display = 'block';
-        document.getElementById('view-title').innerText = `検索結果: ${val}`;
+        document.getElementById('view-title').innerText = searchLabels[currentLang] || searchLabels.ja;       
         document.getElementById('tag-area').innerHTML = '';
-
         render();
-
         window.scrollTo(0, 0);
     }
 }
@@ -880,7 +970,7 @@ function handleSwipe() {
         changeInternalImage(itemId, suffixList, 1, thumbs.length);
     }
 }
-// --- セクション切り替え用の関数 ---
+
 function showAbout() {
     const homeView = document.getElementById('home-view');
     const catalogView = document.getElementById('catalog-view');
@@ -890,20 +980,110 @@ function showAbout() {
     if (catalogView) catalogView.style.display = 'none';
     if (aboutView) {
         aboutView.style.setProperty('display', 'block', 'important');
+
+        // --- 多言語切り替えロジックを追加 ---
+        aboutView.querySelectorAll('.about-content').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        const activeContent = aboutView.querySelector(`.lang-${currentLang}`);
+        if (activeContent) {
+            activeContent.style.display = 'block';
+        } else {
+            const fallback = aboutView.querySelector('.lang-ja') || aboutView.querySelector('.lang-en');
+            if (fallback) fallback.style.display = 'block';
+        }
     }
+    
+    // 2. メッセージフォームの翻訳
+        const uiLabels = {
+            ja: { 
+                title: "About Me",
+                header: "About This Site",
+                sub: "題名", 
+                msg: "メッセージ本文 (任意)", 
+                btn: "送信", 
+                opt: ["選択してください", "ご意見", "こんな機能が欲しい", "その他"],
+                sent: "メッセージを送信しました。ありがとうございます！",
+                copy: "記載されている会社名・製品名・システム名などは、各社の商標、または登録商標です。"
+            },
+            en: { 
+                title: "About Me",
+                header: "About This Site",
+                sub: "Title", 
+                msg: "Message (Optional)", 
+                btn: "Submit", 
+                opt: ["Please select", "Feedback", "Feature Request", "Other"],
+                sent: "Your message has been sent. Thank you!",
+                copy: "All company names, product names, and system names mentioned are trademarks or registered trademarks of their respective owners."
+            },
+            fr: { 
+                title: "À propos",
+                header: "À propos de ce site",
+                sub: "Titre", 
+                msg: "Message (facultatif)", 
+                btn: "Envoyer", 
+                opt: ["Veuillez sélectionner", "Avis", "Demande de fonctionnalité", "Autre"],
+                sent: "Votre message a été envoyé. Merci !",
+                copy: "Les noms de sociétés, produits et systèmes mentionnés sont des marques déposées de leurs propriétaires respectifs."
+            },
+            de: { 
+                title: "Über mich",
+                header: "Über diese Seite",
+                sub: "Titel", 
+                msg: "Nachricht (optional)", 
+                btn: "Senden", 
+                opt: ["Bitte auswählen", "Feedback", "Funktionswunsch", "Sonstiges"],
+                sent: "Ihre Nachricht wurde gesendet. Vielen Dank!",
+                copy: "Alle genannten Firmen-, Produkt- und Systemnamen sind Marken oder eingetragene Marken ihrer jeweiligen Eigentümer."
+            }
+        };
+    
+        const label = uiLabels[currentLang] || uiLabels.ja;
+
+        // 各ラベルとボタンの書き換え
+        const labelSub = document.getElementById('label-subject');
+        const labelMsg = document.getElementById('label-message');
+        const submitBtn = document.getElementById('submit-btn');
+        const formResponse = document.getElementById('form-response');
+
+        if (labelSub) labelSub.innerText = label.sub;
+        if (labelMsg) labelMsg.innerText = label.msg;
+        if (submitBtn) submitBtn.innerText = label.btn;
+        if (formResponse) formResponse.innerText = label.sent;
+
+        // セレクトボックスの中身を再構築
+        const select = document.getElementById('form-subject');
+        if (select) {
+            select.innerHTML = `<option value="" disabled selected>${label.opt[0]}</option>` +
+                label.opt.slice(1).map(o => `<option value="${o}">${o}</option>`).join('');
+        }
+        const copyElem = document.getElementById('copyright-text');
+        if (copyElem) {
+            copyElem.innerText = label.copy;
+        }
+        const watermark = document.getElementById('about-watermark');
+        if (watermark) {
+            watermark.innerText = label.title;
+        }
+        const headerElem = document.getElementById('about-title');
+        if (headerElem) {
+            headerElem.innerText = label.header;
+        }
+    }
+
     if (window.innerWidth <= 768) {
         const sidebar = document.getElementById('sidebar');
         if (sidebar && sidebar.classList.contains('active')) {
             toggleSidebar();
         }
     }
-    // ページトップへ戻す（任意）
-    window.scrollTo(0, 0);
-    history.pushState({ page: 'about' }, '', '#about');
-    if (addHistory) {
+
+window.scrollTo(0, 0);
+    if (typeof addHistory !== 'undefined' && addHistory) {
         history.pushState({ page: 'about' }, '', '#about');
     }
-}
+
 
 window.onload = async function() {
     const CACHE_KEY = 'eorzea_furniture_data_final_v2';
@@ -987,6 +1167,7 @@ document.getElementById('message-form').addEventListener('submit', function(e) {
         submitBtn.disabled = false;
     });
 });
+
 // ブラウザの戻る・進むボタンが押された時の処理
 window.addEventListener('popstate', function(e) {
     if (e.state) {
@@ -1002,8 +1183,22 @@ window.addEventListener('popstate', function(e) {
     }
 });
 
+// アコーディオンの開閉
+function toggleAccordion() {
+    const accordion = document.getElementById('lang-accordion');
+    accordion.classList.toggle('open');
+}
+
 function switchLang(lang) {
     currentLang = lang;
+    localStorage.setItem('preferredLang', lang);
+    
+    const langMap = {
+        ja: { text: "日本語", flag: "ui/jp.png" },
+        en: { text: "English", flag: "ui/us.png" },
+        fr: { text: "Français", flag: "ui/fr.png" },
+        de: { text: "Deutsch", flag: "ui/de.png" }
+    };
     
     // ボタンの見た目を切り替え
     document.querySelectorAll('.lang-switcher button').forEach(btn => btn.classList.remove('active'));
@@ -1011,13 +1206,23 @@ function switchLang(lang) {
     if (event && event.target) {
         event.target.classList.add('active');
     }
-
-    // --- ここが重要！ ---
-    // 言語を切り替えたら、一旦「ホーム」に戻すか、
-    // 現在のフィルター値を新しい言語の名前に変換する必要があります。
-    // 今回は一番安全で確実な「言語を変えたら一度ホームに戻す」処理を追加します。
     
     buildMenu();
     buildHome();
     showHome(); // 言語を変えたらトップへ戻す（フィルターの不整合を防ぐため）
+    // 一番上の表示（選択済みエリア）を更新
+    document.getElementById('current-flag').src = langMap[lang].flag;
+    document.getElementById('current-text').innerText = langMap[lang].text;
+
+    // アコーディオンを閉じる
+    document.getElementById('lang-accordion').classList.remove('open');
+
+    // UIと言語の全体更新
+    updateUI(); 
+    if (document.getElementById('about-view').style.display === 'block') {
+        showAbout();
+        buildMenu();
+        buildHome();
+        showHome();
+    }
 }
