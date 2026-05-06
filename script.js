@@ -1142,7 +1142,7 @@ document.getElementById('message-form').addEventListener('submit', function(e) {
     
     const submitBtn = document.getElementById('submit-btn');
     const responseMsg = document.getElementById('form-response');
-    const gasUrl = "https://script.google.com/macros/s/AKfycbyFl7P8CYPDNBsvWWx34NSTAxocAp6m6N0r4jrrnBLb8NnxfW7PqxQJDwRXAC0CqsvMRw/exec";
+    const gasUrl = "https://script.google.com/macros/s/AKfycbyiIhKtqwJ7tQ4CDzRCZ8wFGv2FziF4KDmkp4X-d7ccI8OZki3jT2iDEdZA4--lXP_EEA/exec";
 
     submitBtn.innerText = "送信中...";
     submitBtn.disabled = true;
